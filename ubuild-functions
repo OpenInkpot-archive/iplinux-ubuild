@@ -1,0 +1,130 @@
+# -*- mode:sh -*-
+
+[ -n "$UBUILD_WORK_DIR" ] || (echo "No work directory specified" && exit 1)
+
+_workdir_clean() {
+    RET=$?
+    sudo umount "$_BUILDPLACE"
+    rm -rf "$_BUILDPLACE"
+    return $RET
+}
+_workdir() {
+    _BUILDPLACE=$(mktemp -d -p "$UBUILD_WORK_DIR" builddir.XXXXXXXXXX)
+    export _BUILDPLACE
+    sudo mount -t tmpfs -o size=2G tmpfs "$_BUILDPLACE"
+    trap _workdir_clean 0 QUIT KILL TERM INT
+}
+
+BASE_TGZ="$UBUILD_WORK_DIR/$CONFIGURATION.tgz"
+
+_pbuilder_options() {
+    # Sigh. This is not overridable using command line options
+    if ! [ -f "$UBUILD_WORK_DIR/pbuilderrc" ]; then
+        echo APTCACHEHARDLINK=no > "$UBUILD_WORK_DIR/pbuilderrc"
+    fi
+    echo --configfile "$UBUILD_WORK_DIR/pbuilderrc"
+
+    # Some hooks
+    if ! [ -d "$UBUILD_WORK_DIR/hooks" ]; then
+        mkdir -p "$UBUILD_WORK_DIR/hooks"
+        echo <<EOF > "$UBUILD_WORK_DIR/hooks/D70update"
+#!/bin/sh
+/usr/bin/apt-get update
+/usr/bin/apt-get dist-upgrade --yes --force-yes
+EOF
+    fi
+    echo --hookdir "$UBUILD_WORK_DIR/hooks"
+
+    echo --aptcache "$UBUILD_WORK_DIR/cache"
+    echo --buildplace "$_BUILDPLACE"
+    echo --debootstrap debootstrap
+    echo --basetgz "$BASE_TGZ"
+    echo --mirror $DEBIAN_MIRROR
+    if ! [ -z $OTHER_MIRRORS ]; then
+        echo --othermirror $OTHER_MIRRORS
+    fi
+    echo --distribution $DEBIAN_SUITE
+    if ! [ -z $BUILD_ARCH ]; then
+        echo --debootstrapopts --arch=$BUILD_ARCH
+    fi
+}
+
+_prepare_basetgz() {
+    TS_FILE="$UBUILD_WORK_DIR/$CONFIGURATION.tgz.timestamp"
+    if ! [ -e "$BASE_TGZ" ]; then
+        if sudo pbuilder --create $(_pbuilder_options); then
+            date +%s > $TS_FILE
+        else
+            RET=$?
+            rm -f "$BASE_TGZ"
+            return $?
+        fi
+    else
+        if [ -f $TS_FILE ]; then
+            TS=$(cat $TS_FILE)
+            CURTIME=$(date +%s)
+
+            expr "($TS + ($BASETGZ_UPDATE_TIMEOUT*86400)) < $CURTIME"
+            if [ $? -eq 0 ]; then
+                # Okay, the tgz is fresh enough
+                return 0
+            fi
+        fi
+            
+        if sudo pbuilder --update --override-config $(_pbuilder_options); then
+            date +%s > $TS_FILE
+        else
+            return $?
+        fi
+    fi
+}
+
+_build() {
+    PACKAGE_DIR="$1"
+    TARGET_DIR="$2"
+    TARGET_ARCH="$3"
+
+    DEB_BUILD_OPTIONS=-b
+    if [ -n "$TARGET_ARCH" ]; then
+        DEB_BUILD_OPTIONS="$DEB_BUILD_OPTIONS --arch=$TARGET_ARCH"
+    fi
+
+    cd "$PACKAGE_DIR"
+
+    PKG_SOURCENAME=$(dpkg-parsechangelog|sed -n 's/^Source: //p')
+    PKG_VERSION=$(dpkg-parsechangelog|sed -n 's/Version: \(.*:\|\)//p')
+    CHANGES="${PKG_SOURCENAME}_${PKG_VERSION}_$BUILD_ARCH.changes"
+    LOG="${PKG_SOURCENAME}_${PKG_VERSION}_$BUILD_ARCH.log"
+
+    pdebuild \
+        --arch "$BUILD_ARCH" \
+        --buildresult "$TARGET_DIR" \
+        --debbuildopts "$DEB_BUILD_OPIONS" \
+        --use-pdebuild-internal \
+        --logfile "$TARGET_DIR/$LOG" \
+        -- \
+        $(_pbuilder_options)
+
+    debsign -k"$SIGN_KEY" "$TARGET_DIR/$CHANGES"
+}
+
+#
+# This function expects the following variables to be set:
+#
+# CONFIGURATION - name of current configuration.
+# BUILD_ARCH - build architecture. Need to be compatible with host architecture.
+# SIGN_KEY - ID of key to sign built packages with.
+# DEBIAN_SUITE - Debian suite to use.
+# DEBIAN_MIRROR - URL of Debian mirror to use.  | if mirror starts with file:///,
+# OTHER_MIRRORS - URLs of other mirrors to use, | it will be bind-mounted.
+#                 separated by '|'
+#
+# todo: PBUILDER - use instead of pbuilder(1) to build. E.g.: toolchain
+#
+
+# pbuildit <package dir> <target dir> [<target architecture>]
+pbuildit() {
+    _workdir
+    _prepare_basetgz
+    _build "$@"
+}
