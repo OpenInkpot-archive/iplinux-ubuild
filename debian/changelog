@@ -1,3 +1,9 @@
+ubuild (0.1.1) zelazny; urgency=low
+
+  * Use parallel=<N> from DEB_BUILD_OPTIONS.
+
+ -- Mikhail Gusarov <dottedmag@dottedmag.net>  Tue, 15 Dec 2009 00:08:44 +0600
+
 ubuild (0.1) zelazny; urgency=low
 
   * Initial release
