@@ -1,0 +1,14 @@
+Source: ubuild
+Section: host/tools
+Priority: optional
+Maintainer: Mikhail Gusarov <dottedmag@dottedmag.net>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.3
+
+Package: ubuild
+Architecture: all
+Depends: gnupg, dpkg-dev (>= 1.14.25.ip3), pbuilder (>= 0.185.ip1),
+ dpkg-cross (>= 2.3.0.1.ip1), python (>= 2.5), sudo, python-path
+Description: set of tools to build IPlinux packages
+ ubuild manages the pbilder-based builds of IPlinux
+ packages.
