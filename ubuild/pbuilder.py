@@ -99,8 +99,6 @@ def _get_common_opts(config_name, work_dir):
     rc_file = _base_dir / 'pbuilderrc'
     if not rc_file.exists():
         rc_file.write_text('APTCACHEHARDLINK=no\n')
-        rc_file.write_text('DEB_BUILD_OPTIONS=parallel=%s\n' % _parallel_builds,
-                           append=True)
     # Sigh again.
     hooks_dir = _base_dir / 'hooks'
     if not hooks_dir.exists():
