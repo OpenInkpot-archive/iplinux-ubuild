@@ -157,10 +157,6 @@ def _get_create_args(config_name, work_dir):
 
 def _get_build_args(dsc_file, arch_dep_only, target_arch, log_file, config_name, out_dir, work_dir):
     debbuildopts = '-b'
-    if 'DEB_BUILD_OPTIONS' in environ:
-        res = search('parallel=(\d+)', environ['DEB_BUILD_OPTIONS'])
-        if res:
-            debbuildopts += ' ' + res.group(1)
 
     args = [_pbuilder, '--build',
             '--buildresult', out_dir,
