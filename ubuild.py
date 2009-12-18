@@ -9,7 +9,7 @@ from optparse import OptionParser as optparser
 
 _usage='''%name [-B] <configuration> <.dsc> <mode> <output-dir>
 
- <mode> = host | target:$arch | toolchain:$arch
+ <mode> = host | target:$arch
 
  Configuration is like openinkpot-i386-asimov or iplinux-amd64-zelazny'''
 
@@ -35,8 +35,6 @@ def main():
             return 0
         else:
             return 1
-    elif mode.startswith('toolchain:'):
-        raise NotImplementedError("Building toolchains is not implemented yet")
 
     parser.print_help()
     return 1
