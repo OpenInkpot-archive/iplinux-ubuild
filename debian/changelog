@@ -1,3 +1,10 @@
+ubuild (0.1.2) zelazny; urgency=low
+
+  * Don't muck with DEB_BUILD_OPTIONS anymore, it's up to pbuilder.
+  * Do not pretend ubuild can build toolchains
+
+ -- Mikhail Gusarov <dottedmag@dottedmag.net>  Sat, 19 Dec 2009 13:26:19 +0600
+
 ubuild (0.1.1) zelazny; urgency=low
 
   * Use parallel=<N> from DEB_BUILD_OPTIONS.
