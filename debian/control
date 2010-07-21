@@ -1,0 +1,1 @@
+Depends: devscripts, python-path (>= ?), python-git (>= 0.3), python (>= 2.5), pbuilder, sudo, gnupg

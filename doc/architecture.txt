@@ -1,0 +1,74 @@
+ubuild architecture
+===================
+
+ubuild is meant to provide the following services:
+
+ * Build the Debian packages (native and cross-compiled) from git repositories
+ * Manage set of APT repositories
+   - populate repositories with built packages
+   - provide the way to perform auxiliary tasks (removal of packages etc)
+
+Deployment view
+---------------
+
+ +-----------+
+ | Main node |
+ +-----------+
+       ^
+       |
+  +-------------+
+  | Slave nodes |-+
+  +-------------+ |
+   +--------------+
+
+Main node contains the following data and services:
+
+ * Configuration
+ * Task queue
+ * Database
+ * APT repositories
+ * git repositories
+
+Slave nodes are stateless and used only as data-crunchers.
+
+Logical view
+------------
+
+ubuild is event-driven. Events may be provided by command-line tools, git hooks,
+web interface and anything else.
+
+Every event results in a new _Job_ created. Jobs encapsulate some integral
+activity to be performed, e.g.
+ * build new version of package on all architectures
+ * BinNMU given package on specific architecture
+ * Add new architecture to APT repository
+ * Delete package from APT repository
+
+Each job consists of several _Tasks_ which are scheduled by Task Queue and
+executed on workers. Beside set of tasks each Job type contains some glue, which
+is used to 1) re-schedule failed tasks if deemed necessary 2) schedule new Job
+if deemed necessary 3) provide Web interface with integral status of Job.
+
+There are various types of tasks:
+
+ * Build given git repository / tag on given set of APT repositories and given
+   target architecture
+ * Update APT repository with new set of binary packages
+ * Delete given package from APT repository
+
+Repository-related tasks are run on main node in order to maintain integrity of
+repository. Build-related ones are scheduled on slave nodes.
+
+Implementation view
+-------------------
+
+ubuild is written in Python.
+
+Task Queue is Celery with RabbitMQ backend and Redis for results storage.
+
+Repositories metadata is stored in Redis (AOF).
+
+Future directions
+=================
+
+ * Full repository history, with Packages/Release generated on demand

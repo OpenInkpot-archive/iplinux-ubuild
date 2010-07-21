@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+{% block body %}
+  <h1>Architectures</h1>
+  <h2>Build</h2>
+  <ul class="jobs">
+  {% for arch in build_architectures %}
+    <li><a href="#">{{ arch }}</a></li>
+  {% endfor %}
+  </ul>
+  <h2>Target</h2>
+  <ul class="jobs">
+  {% for arch in architectures %}
+    <li><a href="#">{{ arch }}</a></li>
+  {% endfor %}
+  </ul>
+{% endblock %}

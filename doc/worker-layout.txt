@@ -1,0 +1,20 @@
+base/
+  tasks/
+    <id>/
+      build/
+      package.dsc
+      package.changes
+      src/
+    ...
+  env/
+    <env-name>/
+      base.tgz
+      build-environment
+      cache/
+      hooks/
+      pbuilderrc
+      version
+    ...
+  gitcache/
+    git_aa_b_/
+    ...

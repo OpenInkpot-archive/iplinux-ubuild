@@ -1,0 +1,10 @@
+#!/usr/bin/python
+
+from path import path
+from ubuild.worker import crosser
+
+if __name__ == '__main__':
+    envdir, changesfile, cross_arch = path('/home/dottedmag/oi/is/ubuild/base/env/iplinux-zelazny-amd64-e2'), path('/home/dottedmag/oi/is/ubuild/base/tasks/6/gcc-4.3_4.3.2-1.ip4_amd64.changes'), 'armel'
+
+    crosser.cross(envdir, changesfile, cross_arch)
+

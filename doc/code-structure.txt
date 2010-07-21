@@ -1,0 +1,14 @@
+ubuild code structure
+---------------------
+
+celeryconfig.py # configuration for task queue
+
+bin/
+  # command-line tools and temporary scripts
+ubuild/
+  # main ubuild code
+  worker/
+    # code for worker nodes
+  web/
+    # code for web interface
+
