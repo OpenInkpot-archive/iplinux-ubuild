@@ -1,0 +1,139 @@
+Build task
+----------
+
+Build task is most complex one amongst tasks of ubuild. The following text gives
+an overvew of what need to be done to build single Debian package.
+
+Overview
+--------
+
+Build process consists of set of steps.
+
+Driver for build process is implemented in ubuild.worker.task module.
+
+Environment
+-----------
+
+First step is preparation of environment. Ubuild uses pbuilder to build packages
+in isolation from the computer the build is performed on. The following data is
+needed to create environment:
+
+ * Name (technically not necessary, still quite useful)
+
+ * Set of APT repositories this environment will use.
+
+ * Build architecture.
+
+Build architecture needs special mention as there are hosts which are able to
+support natively several architectures, such as amd64 machines which may be used
+to host both i386 and amd64 environments.
+
+== Example ==
+
+ * Name: iplinux-zelazny-amd64
+ * Repositories:
+   http://ftp.fi.debian.org/debian/ lenny main contrib non-free
+   http://ftp.iplinux.org/iplinux/ zelazny host/tools host/cross
+ * Architecture: amd64
+
+First repository in list is special, it should contain all packages necessary to
+bootstrap chroot using debootstrap. In practice it is always Debian repository.
+
+Implementation: ubuild.worker.pbuilder
+
+Source
+------
+
+pbuilder builds binary packages from Debian source packages. Debian binary
+package (setting aside 3.0 formats) consists of .dsc metadata and .tar.gz with
+source code.
+
+IPlinux/OpenInkpot keep source code in git environment. There are both
+repositories containing code ready to be turned into source packages and
+packages which need to be prepared before.
+
+The following set of steps is to be performed to create source package from
+given tag for git repository:
+
+ * Given tag is checked out from git repository.
+
+ * If there is need to prepare repository before turning it into source package,
+   debian/source/prepare script is run with arguments specified by user.
+
+ * If build is specified to be cross-build, debian/conrol file is modified by
+   processing XCS-Needs-Cross-Toolchain, XCS-Cross-Hsot-Build-Depends and
+   XCS-Cross-Build-Depends headers and turning them into regular Build-Depends
+   field.
+
+ * dpkg-source -b is called on directory, generating source package.
+
+All steps except first one are performed in build environment to prevent
+interactions between build host and source package.
+
+== Example 1 ==
+ * Git repository: git://git.iplinux.org/zlib.git
+ * Git tag: zelazny/1+1.2.4-1
+ * No need to process package
+ * Package is built as cross one, with target architecture 'mipsel'
+
+== Example 2 ==
+ * Git repository: git://git.iplinux.org/pkg-config-host.git
+ * Git tag: zelazny/1.0
+ * Package need to be processed with single argument 'mipsel'
+ * Package is built as native one
+
+Implementation: ubuild.worker.cachegit, ubuild.worker.prepare, ubuild.worker.gensrc
+
+Build
+-----
+
+Build itself is relatively straightforward. pbuilder is called with given
+environment and given source package. Build results in .changes file with set of
+.deb packages mentioned.
+
+Implementation: ubuild.worker.pbuilder
+
+Postprocessing
+--------------
+
+After succesful build the following two steps are performed by builder:
+
+ * cross-packages are generated for all target packages by using dpkg-cross tool
+ * Packages unnecessary in native form are removed
+ * set of packages is signed by builder
+
+Implementation: ubuild.worker.crosser, ubuild.worker.sign
+
+== Example 1 ==
+
+Cross-build of zlib_1.2.4-1.dsc for architecture 'mipsel' results in the
+following packages:
+ 
+ * libz1_1.2.4-1_mipsel.deb (section 'core')
+ * libz1-dev_1.2.4-1_mipsel.deb (section 'libdevel')
+ * libz1-dbg_1.2.4-1_mipsel.deb (section 'debug')
+ * minizip_1.2.4-1_mipsel.deb (section 'core')
+
+The following cross packages are generated (all in section 'host/cross'):
+
+ * libz1-mipsel-cross_1.2.4-1_all.deb
+ * libz1-dev-mipsel-cross_1.2.4-1_mipsel.deb
+ * libz1-dbg-mipsel-cross_1.2.4-1_mipsel.deb
+ * minizip-mipsel-cross_1.2.4-1_mipsel.deb
+
+Package libz1-dev is removed from resulting package set as having 'libdevel'
+section. Corresponding libz1-dev-mipsel-cross package is kept for
+cross-compilation.
+
+ Set of 7 packages is signed by worker and sent to main node.
+
+== Example 2 ==
+
+Native build of pkg-config-host-armel_1.0.dsc results in the following package:
+
+ * pkg-config-host-arm-ip-linux-gnueabi_1.0_all.deb (section 'host/tools')
+
+Cross-packages are not generated for binary package with section 'host/*'.
+
+ Set of this single package is signed and sent to main node.
+
