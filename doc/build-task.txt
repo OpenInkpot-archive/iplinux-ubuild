@@ -61,7 +61,7 @@ given tag for git repository:
    debian/source/prepare script is run with arguments specified by user.
 
  * If build is specified to be cross-build, debian/conrol file is modified by
-   processing XCS-Needs-Cross-Toolchain, XCS-Cross-Hsot-Build-Depends and
+   processing XCS-Needs-Cross-Toolchain, XCS-Cross-Host-Build-Depends and
    XCS-Cross-Build-Depends headers and turning them into regular Build-Depends
    field.
 
